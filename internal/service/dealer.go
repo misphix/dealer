@@ -10,7 +10,7 @@ import (
 )
 
 type DealerInterface interface {
-	ProcessOrder(context.Context, *models.Order) ([]*models.Deal, error)
+	ProcessOrder(context.Context, *models.Order) error
 }
 
 type Dealer struct {
@@ -34,10 +34,9 @@ func NewDealer(db *gorm.DB, orderDAO dao.OrderInterface, dealDAO dao.DealInterfa
 	}
 }
 
-func (d *Dealer) ProcessOrder(ctx context.Context, order *models.Order) ([]*models.Deal, error) {
-	order.RemainQuantity = order.Quantity
-	if err := d.orderDAO.Insert(ctx, d.db, order); err != nil {
-		return nil, err
+func (d *Dealer) ProcessOrder(ctx context.Context, order *models.Order) error {
+	if order.IsCancel {
+		return d.cancleOrder(order)
 	}
 
 	switch order.OrderType {
@@ -46,11 +45,29 @@ func (d *Dealer) ProcessOrder(ctx context.Context, order *models.Order) ([]*mode
 	case models.OrderTypeSell:
 		return d.processOrder(ctx, order, d.buyBook, d.sellBook)
 	default:
-		return nil, errors.New("invalid order type")
+		return errors.New("invalid order type")
 	}
 }
 
-func (d *Dealer) processOrder(ctx context.Context, takerOrder *models.Order, makerBook, takerBook *models.OrderBook) ([]*models.Deal, error) {
+func (d *Dealer) cancleOrder(target *models.Order) error {
+	for i, order := range d.buyBook.Orders {
+		if target.ID == order.ID {
+			d.buyBook.Remove(i)
+			break
+		}
+	}
+
+	for i, order := range d.sellBook.Orders {
+		if target.ID == order.ID {
+			d.sellBook.Remove(i)
+			break
+		}
+	}
+
+	return nil
+}
+
+func (d *Dealer) processOrder(ctx context.Context, takerOrder *models.Order, makerBook, takerBook *models.OrderBook) error {
 	var deals []*models.Deal
 	var updateOrders []*models.Order
 	for i := len(makerBook.Orders) - 1; i >= 0; i-- {
@@ -106,11 +123,7 @@ func (d *Dealer) processOrder(ctx context.Context, takerOrder *models.Order, mak
 		takerBook.AddOrder(takerOrder)
 	}
 
-	if err := d.recordDeal(ctx, deals, updateOrders); err != nil {
-		return nil, err
-	}
-
-	return deals, nil
+	return d.recordDeal(ctx, deals, updateOrders)
 }
 
 func (d *Dealer) recordDeal(ctx context.Context, deals []*models.Deal, orders []*models.Order) error {

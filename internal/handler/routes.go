@@ -11,6 +11,7 @@ func RegisterRoutes(router gin.IRouter, handler *Handler) {
 	v1Group := router.Group("v1")
 	order := v1Group.Group("order")
 	order.POST("", handler.NewOrder)
+	order.DELETE(":id", handler.CancelOrder)
 }
 
 func status(ctx *gin.Context) {

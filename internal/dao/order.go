@@ -12,7 +12,7 @@ type OrderInterface interface {
 	Insert(context.Context, *gorm.DB, *models.Order) error
 	List(context.Context, *gorm.DB, *models.Order) ([]*models.Order, error)
 	TakeAndLock(context.Context, *gorm.DB, *models.Order) (*models.Order, error)
-	Update(context.Context, *gorm.DB, *models.Order, *models.Order) error
+	Update(context.Context, *gorm.DB, *models.Order) error
 	BulkUpdate(context.Context, *gorm.DB, []*models.Order) error
 }
 
@@ -51,8 +51,8 @@ func (d *Order) TakeAndLock(ctx context.Context, tx *gorm.DB, cond *models.Order
 	return order, nil
 }
 
-func (d *Order) Update(ctx context.Context, tx *gorm.DB, data, cond *models.Order) error {
-	return tx.WithContext(ctx).Where(cond).Updates(data).Error
+func (d *Order) Update(ctx context.Context, tx *gorm.DB, order *models.Order) error {
+	return tx.WithContext(ctx).Updates(&order).Error
 }
 
 func (d *Order) BulkUpdate(ctx context.Context, tx *gorm.DB, orders []*models.Order) error {

@@ -1,10 +1,9 @@
 package main
 
 import (
-	"context"
 	"dealer/internal/configmanager"
 
-	"github.com/go-redis/redis/v8"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -20,18 +19,20 @@ func newMySQL(config configmanager.DatabaseConfig) (*gorm.DB, error) {
 	}), &gorm.Config{})
 }
 
-func newCache(config configmanager.RedisConfig) (*redis.Client, error) {
-	client := redis.NewClient(&redis.Options{
-		Addr: config.Address,
-	})
-
-	ctx, cancel := context.WithTimeout(context.Background(), config.DialTimeout)
-	defer cancel()
-
-	_, err := client.Ping(ctx).Result()
+func newMessageQueue(config configmanager.MessageQueueConfig) (*amqp.Channel, error) {
+	conn, err := amqp.Dial(config.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	return client, nil
+	ch, err := conn.Channel()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := ch.QueueDeclare(config.QueueName, false, false, false, false, nil); err != nil {
+		return nil, err
+	}
+
+	return ch, nil
 }

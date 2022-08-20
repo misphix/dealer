@@ -5,13 +5,14 @@ services:
     ports:
       - 8626:8626
     environment:
-      - REDIS_ADDRESS=cache:6379
       - DATABASE_DSN=user:pass@tcp(database:3306)/deal?charset=utf8&parseTime=True&loc=Local
+      - MESSAGEQUEUE_URL=amqp://user:pass@mq:5672/
+      - MESSAGEQUEUE_QUEUENAME=order
       - GIN_MODE=release
     depends_on:
       database:
         condition: service_healthy
-      cache:
+      mq:
         condition: service_healthy
 
   database:
@@ -21,7 +22,7 @@ services:
     ports:
       - 3306:3306
     environment:
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: deal
       MYSQL_USER: user
       MYSQL_PASSWORD: pass
@@ -33,13 +34,16 @@ services:
       retries: 10
 
 
-  cache:
-    image: redis
+  mq:
+    image: rabbitmq
     restart: always
     ports:
-      - 6379:6379
+      - 5672:5672
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: pass
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 1s
-      timeout: 3s
-      retries: 30
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3

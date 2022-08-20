@@ -2,21 +2,18 @@ package configmanager
 
 import (
 	"strings"
-	"time"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap/zapcore"
-	"golang.org/x/time/rate"
 )
 
 var config *Config
 
 type Config struct {
-	HTTPServer HTTPServerConfig
-	Database   DatabaseConfig
-	Redis      RedisConfig
-	Logger     LoggerConfig
-	Service    ServiceConfig
+	HTTPServer   HTTPServerConfig
+	Database     DatabaseConfig
+	MessageQueue MessageQueueConfig
+	Logger       LoggerConfig
 }
 
 type HTTPServerConfig struct {
@@ -28,19 +25,13 @@ type DatabaseConfig struct {
 	DSN string
 }
 
-type RedisConfig struct {
-	Address     string
-	DialTimeout time.Duration
-	Expiration  time.Duration
+type MessageQueueConfig struct {
+	URL       string
+	QueueName string
 }
 
 type LoggerConfig struct {
 	Level zapcore.Level
-}
-
-type ServiceConfig struct {
-	LimitRate rate.Limit
-	BurstSize int
 }
 
 func Get() (*Config, error) {

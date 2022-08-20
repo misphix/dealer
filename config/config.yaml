@@ -5,6 +5,10 @@ httpServer:
 database:
   dsn: "user:pass@tcp(localhost:3306)/deal?charset=utf8&parseTime=True&loc=Local"
 
+messageQueue:
+  url: "amqp://user:pass@localhost:5672/"
+  queueName: order
+
 redis:
   address: "localhost:6379"
   dialTimeout: 10s
@@ -12,7 +16,3 @@ redis:
 
 logger:
   level: -1
-
-service:
-  limitRate: 60
-  burstSize: 60

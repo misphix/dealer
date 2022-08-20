@@ -9,27 +9,50 @@ import (
 )
 
 type Handler struct {
-	dealer service.DealerInterface
+	orderProcessor service.OrderProcessorInterface
 }
 
-func NewHandler(dealer service.DealerInterface) *Handler {
+func NewHandler(orderProcessor service.OrderProcessorInterface) *Handler {
 	return &Handler{
-		dealer: dealer,
+		orderProcessor: orderProcessor,
 	}
 }
 
 func (h *Handler) NewOrder(ctx *gin.Context) {
-	var order *models.Order
-	if err := ctx.ShouldBind(&order); err != nil {
+	var req *models.OrderRequest
+	if err := ctx.ShouldBind(&req); err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	deals, err := h.dealer.ProcessOrder(ctx, order)
+	order := &models.Order{
+		OrderType:      req.OrderType,
+		Quantity:       req.Quantity,
+		RemainQuantity: req.Quantity,
+		PriceType:      req.PriceType,
+		Price:          req.Price,
+	}
+	err := h.orderProcessor.NewOrder(ctx, order)
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, deals)
+	ctx.JSON(http.StatusOK, order)
+}
+
+func (h *Handler) CancelOrder(ctx *gin.Context) {
+	var req *models.CancelOrderRequest
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err := h.orderProcessor.CancelOrder(ctx, req.ID)
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }

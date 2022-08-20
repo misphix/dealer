@@ -5,6 +5,7 @@ all:
 
 env:
 	docker-compose up database -d
+	docker-compose up mq -d
 
 env-down:
 	docker-compose down
