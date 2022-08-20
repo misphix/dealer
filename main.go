@@ -6,6 +6,7 @@ import (
 	"dealer/internal/dao"
 	"dealer/internal/handler"
 	"dealer/internal/models"
+	"dealer/internal/sdk"
 	"dealer/internal/service"
 	"encoding/json"
 
@@ -13,7 +14,6 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
@@ -53,7 +53,7 @@ func main() {
 	engine.Run(fmt.Sprintf(":%d", config.HTTPServer.Port))
 }
 
-func startConsumer(ch *amqp.Channel, name string, dealer service.DealerInterface) error {
+func startConsumer(ch sdk.AMQPChannel, name string, dealer service.DealerInterface) error {
 	msgs, err := ch.Consume(name, "", true, false, false, false, nil)
 	if err != nil {
 		return err

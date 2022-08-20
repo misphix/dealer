@@ -3,8 +3,10 @@ module dealer
 go 1.19
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/goccy/go-json v0.9.7
+	github.com/golang/mock v1.4.4
 	github.com/rabbitmq/amqp091-go v1.4.0
 	github.com/spf13/viper v1.12.0
 	github.com/stretchr/testify v1.8.0

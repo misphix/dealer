@@ -4,6 +4,7 @@ import (
 	"context"
 	"dealer/internal/dao"
 	"dealer/internal/models"
+	"dealer/internal/sdk"
 
 	"github.com/goccy/go-json"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -17,14 +18,14 @@ type OrderProcessorInterface interface {
 
 type OrderProcessor struct {
 	queueName string
-	ch        *amqp.Channel
+	ch        sdk.AMQPChannel
 	db        *gorm.DB
 	orderDAO  dao.OrderInterface
 }
 
 var _ OrderProcessorInterface = (*OrderProcessor)(nil)
 
-func NewOrderProcessor(ch *amqp.Channel, queueName string, db *gorm.DB, orderDAO dao.OrderInterface) *OrderProcessor {
+func NewOrderProcessor(ch sdk.AMQPChannel, queueName string, db *gorm.DB, orderDAO dao.OrderInterface) *OrderProcessor {
 	return &OrderProcessor{
 		ch:        ch,
 		queueName: queueName,
