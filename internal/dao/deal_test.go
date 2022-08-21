@@ -51,7 +51,7 @@ func (t *DealTestSuite) TearDownTest() {
 	t.db.Close()
 }
 
-func TestOrderTestSuite(t *testing.T) {
+func TestDealTestSuite(t *testing.T) {
 	suite.Run(t, new(DealTestSuite))
 }
 

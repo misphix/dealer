@@ -17,8 +17,8 @@ type Dealer struct {
 	db               *gorm.DB
 	orderDAO         dao.OrderInterface
 	dealDAO          dao.DealInterface
-	buyBook          *models.OrderBook
-	sellBook         *models.OrderBook
+	buyBook          OrderBookInterface
+	sellBook         OrderBookInterface
 	lastTradingPrice float64
 }
 
@@ -29,14 +29,16 @@ func NewDealer(db *gorm.DB, orderDAO dao.OrderInterface, dealDAO dao.DealInterfa
 		db:       db,
 		orderDAO: orderDAO,
 		dealDAO:  dealDAO,
-		buyBook:  models.NewOrderBook(models.BuyComparator),
-		sellBook: models.NewOrderBook(models.SellComparator),
+		buyBook:  NewOrderBook(BuyComparator),
+		sellBook: NewOrderBook(SellComparator),
 	}
 }
 
 func (d *Dealer) ProcessOrder(ctx context.Context, order *models.Order) error {
 	if order.IsCancel {
-		return d.cancleOrder(order)
+		d.buyBook.RemoveOrder(order.ID)
+		d.sellBook.RemoveOrder(order.ID)
+		return nil
 	}
 
 	switch order.OrderType {
@@ -49,29 +51,14 @@ func (d *Dealer) ProcessOrder(ctx context.Context, order *models.Order) error {
 	}
 }
 
-func (d *Dealer) cancleOrder(target *models.Order) error {
-	for i, order := range d.buyBook.Orders {
-		if target.ID == order.ID {
-			d.buyBook.Remove(i)
-			break
-		}
-	}
-
-	for i, order := range d.sellBook.Orders {
-		if target.ID == order.ID {
-			d.sellBook.Remove(i)
-			break
-		}
-	}
-
-	return nil
-}
-
-func (d *Dealer) processOrder(ctx context.Context, takerOrder *models.Order, makerBook, takerBook *models.OrderBook) error {
+func (d *Dealer) processOrder(ctx context.Context, takerOrder *models.Order, makerBook, takerBook OrderBookInterface) error {
 	var deals []*models.Deal
 	var updateOrders []*models.Order
-	for i := len(makerBook.Orders) - 1; i >= 0; i-- {
-		makerOrder := makerBook.Orders[i]
+	for {
+		makerOrder := makerBook.Peek()
+		if makerOrder == nil {
+			break
+		}
 
 		var price float64
 		switch {
@@ -81,13 +68,8 @@ func (d *Dealer) processOrder(ctx context.Context, takerOrder *models.Order, mak
 			price = d.lastTradingPrice
 		}
 
-		if takerOrder.PriceType == models.PriceTypeLimit {
-			switch {
-			case takerOrder.OrderType == models.OrderTypeBuy && takerOrder.Price < price:
-				break
-			case takerOrder.OrderType == models.OrderTypeSell && takerOrder.Price > price:
-				break
-			}
+		if !isPriceMatch(takerOrder, price) {
+			break
 		}
 
 		var quantity uint
@@ -110,7 +92,7 @@ func (d *Dealer) processOrder(ctx context.Context, takerOrder *models.Order, mak
 		makerOrder.RemainQuantity -= quantity
 		updateOrders = append(updateOrders, makerOrder)
 		if makerOrder.RemainQuantity == 0 {
-			makerBook.Remove(i)
+			makerBook.Dequeue()
 		}
 
 		if takerOrder.RemainQuantity == 0 {
@@ -126,16 +108,33 @@ func (d *Dealer) processOrder(ctx context.Context, takerOrder *models.Order, mak
 	return d.recordDeal(ctx, deals, updateOrders)
 }
 
-func (d *Dealer) recordDeal(ctx context.Context, deals []*models.Deal, orders []*models.Order) error {
-	tx := d.db.Begin()
-	if err := d.orderDAO.BulkUpdate(ctx, tx, orders); err != nil {
-		tx.Rollback()
-		return err
+func isPriceMatch(takerOrder *models.Order, price float64) bool {
+	if takerOrder.PriceType == models.PriceTypeLimit {
+		switch {
+		case takerOrder.OrderType == models.OrderTypeBuy && takerOrder.Price < price:
+			return false
+		case takerOrder.OrderType == models.OrderTypeSell && takerOrder.Price > price:
+			return false
+		}
 	}
 
-	if err := d.dealDAO.Insert(ctx, tx, deals); err != nil {
-		tx.Rollback()
-		return err
+	return true
+}
+
+func (d *Dealer) recordDeal(ctx context.Context, deals []*models.Deal, orders []*models.Order) error {
+	tx := d.db.Begin()
+	if len(orders) != 0 {
+		if err := d.orderDAO.BulkUpdate(ctx, tx, orders); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deals) != 0 {
+		if err := d.dealDAO.Insert(ctx, tx, deals); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	return tx.Commit().Error

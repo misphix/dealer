@@ -64,36 +64,6 @@ func (mr *MockOrderInterfaceMockRecorder) Insert(arg0, arg1, arg2 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insert", reflect.TypeOf((*MockOrderInterface)(nil).Insert), arg0, arg1, arg2)
 }
 
-// List mocks base method.
-func (m *MockOrderInterface) List(arg0 context.Context, arg1 *gorm.DB, arg2 *models.Order) ([]*models.Order, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", arg0, arg1, arg2)
-	ret0, _ := ret[0].([]*models.Order)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// List indicates an expected call of List.
-func (mr *MockOrderInterfaceMockRecorder) List(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockOrderInterface)(nil).List), arg0, arg1, arg2)
-}
-
-// TakeAndLock mocks base method.
-func (m *MockOrderInterface) TakeAndLock(arg0 context.Context, arg1 *gorm.DB, arg2 *models.Order) (*models.Order, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TakeAndLock", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*models.Order)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// TakeAndLock indicates an expected call of TakeAndLock.
-func (mr *MockOrderInterfaceMockRecorder) TakeAndLock(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TakeAndLock", reflect.TypeOf((*MockOrderInterface)(nil).TakeAndLock), arg0, arg1, arg2)
-}
-
 // Update mocks base method.
 func (m *MockOrderInterface) Update(arg0 context.Context, arg1 *gorm.DB, arg2 *models.Order) error {
 	m.ctrl.T.Helper()
